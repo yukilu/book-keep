@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, Delete, Check } from 'lucide-react'
+import { ArrowLeft, Delete, Plus, Minus } from 'lucide-react'
 import { api } from '@/api'
 import { useAppStore } from '@/store'
 import { cn, getCurrentDateTime } from '@/lib/utils'
@@ -10,6 +10,11 @@ import type { TransactionType, TransactionInput } from '@shared/types'
 // 转换：存储格式 YYYY-MM-DD HH:mm <-> input 格式 YYYY-MM-DDTHH:mm
 const toInputDate = (s: string) => s.replace(' ', 'T')
 const toStoredDate = (s: string) => s.replace('T', ' ')
+
+// 格式化数字显示：去掉多余的零
+const formatNum = (n: number): string => {
+  return parseFloat(n.toFixed(2)).toString()
+}
 
 export default function Add() {
   const navigate = useNavigate()
@@ -24,8 +29,8 @@ export default function Add() {
   const [amount, setAmount] = useState('')
   const [note, setNote] = useState('')
   const [date, setDate] = useState(toInputDate(getCurrentDateTime()))
-  const [oilPrice, setOilPrice] = useState('')
-  const [mileage, setMileage] = useState('')
+  const [result, setResult] = useState<number | null>(null)
+  const [pendingOp, setPendingOp] = useState<'+' | '-' | null>(null)
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(isEdit)
 
@@ -46,8 +51,6 @@ export default function Add() {
         setAmount(String(t.amount))
         setNote(t.note || '')
         setDate(toInputDate(t.date))
-        setOilPrice(t.oil_price != null ? String(t.oil_price) : '')
-        setMileage(t.mileage != null ? String(t.mileage) : '')
         setLoading(false)
       })
       .catch(() => {
@@ -60,8 +63,6 @@ export default function Add() {
   const handleTypeChange = (newType: TransactionType) => {
     setType(newType)
     setCategory('')
-    setOilPrice('')
-    setMileage('')
   }
 
   const handleDigit = (digit: string) => {
@@ -82,8 +83,53 @@ export default function Add() {
 
   const handleDelete = () => setAmount(amount.slice(0, -1))
 
+  const handleOp = (op: '+' | '-') => {
+    const cur = parseFloat(amount) || 0
+    if (result === null) {
+      setResult(cur)
+    } else if (amount !== '') {
+      setResult(pendingOp === '-' ? result - cur : result + cur)
+    }
+    setAmount('')
+    setPendingOp(op)
+  }
+
+  const handleClear = () => {
+    setAmount('')
+    setResult(null)
+    setPendingOp(null)
+  }
+
+  // 等号：完成当前运算，结果显示在金额区
+  const handleEquals = () => {
+    if (result === null || pendingOp === null) return
+    const cur = parseFloat(amount)
+    if (!isNaN(cur) && amount !== '') {
+      setResult(pendingOp === '-' ? result - cur : result + cur)
+    }
+    setAmount('')
+    setPendingOp(null)
+  }
+
+  // 显示值：有运算结果且当前无输入时显示结果，否则显示当前输入
+  const displayValue = result !== null && amount === ''
+    ? formatNum(result)
+    : (amount || '0.00')
+
+  // 计算最终金额
+  const getFinalAmount = (): number => {
+    if (result !== null) {
+      const cur = parseFloat(amount)
+      if (!isNaN(cur) && amount !== '') {
+        return pendingOp === '-' ? result - cur : result + cur
+      }
+      return result
+    }
+    return parseFloat(amount) || 0
+  }
+
   const handleSave = async () => {
-    const value = parseFloat(amount)
+    const value = getFinalAmount()
     if (!category || !value || value <= 0) return
     setSaving(true)
     const data: TransactionInput = {
@@ -92,8 +138,6 @@ export default function Add() {
       amount: value,
       note,
       date: toStoredDate(date),
-      oil_price: category === '加油' ? (oilPrice ? parseFloat(oilPrice) : null) : null,
-      mileage: category === '加油' ? (mileage ? parseFloat(mileage) : null) : null,
     }
     try {
       if (isEdit && editId) {
@@ -110,8 +154,6 @@ export default function Add() {
     }
   }
 
-  const padKeys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0']
-
   if (loading) {
     return (
       <div className="min-h-screen bg-[#FAFAF7] flex items-center justify-center">
@@ -119,6 +161,33 @@ export default function Add() {
       </div>
     )
   }
+
+  const canSave = !!category && getFinalAmount() > 0 && !saving
+  // 有未完成的运算时显示等号，运算完成后显示完成
+  const hasPendingOp = pendingOp !== null && (amount !== '' || result !== null)
+  const doneLabel = hasPendingOp ? '=' : '完成'
+  const doneAction = hasPendingOp ? handleEquals : handleSave
+  const doneDisabled = hasPendingOp ? (result === null || amount === '') : !canSave
+
+  // 键盘布局：4列，最后一列为 +/-/C/完成(或=)
+  const keypad = [
+    { label: '1', action: () => handleDigit('1') },
+    { label: '2', action: () => handleDigit('2') },
+    { label: '3', action: () => handleDigit('3') },
+    { label: '+', action: () => handleOp('+'), icon: Plus },
+    { label: '4', action: () => handleDigit('4') },
+    { label: '5', action: () => handleDigit('5') },
+    { label: '6', action: () => handleDigit('6') },
+    { label: '-', action: () => handleOp('-'), icon: Minus },
+    { label: '7', action: () => handleDigit('7') },
+    { label: '8', action: () => handleDigit('8') },
+    { label: '9', action: () => handleDigit('9') },
+    { label: 'C', action: handleClear, isClear: true },
+    { label: '.', action: () => handleDigit('.') },
+    { label: '0', action: () => handleDigit('0') },
+    { label: 'del', action: handleDelete, icon: Delete },
+    { label: doneLabel, action: doneAction, isDone: true, disabled: doneDisabled },
+  ]
 
   return (
     <div className="min-h-screen bg-[#FAFAF7] flex flex-col">
@@ -153,32 +222,28 @@ export default function Add() {
         </button>
       </div>
 
-      {/* 分类横向滚动 */}
+      {/* 标签平铺 */}
       <div className="px-4 py-2">
-        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+        <div className="grid grid-cols-5 gap-2">
           {categories.map((cat) => {
             const Icon = cat.icon
             const selected = category === cat.name
             return (
               <button
                 key={cat.name}
-                onClick={() => {
-                  setCategory(cat.name)
-                  setOilPrice('')
-                  setMileage('')
-                }}
-                className="flex flex-col items-center gap-1 shrink-0"
+                onClick={() => setCategory(cat.name)}
+                className="flex flex-col items-center gap-1"
               >
                 <span
                   className={cn(
-                    'w-11 h-11 rounded-full flex items-center justify-center transition-all',
+                    'w-10 h-10 rounded-full flex items-center justify-center transition-all',
                     cat.bgColor,
                     selected && 'ring-2 ring-offset-2 ring-amber-600 scale-105'
                   )}
                 >
-                  <Icon className={cn('w-5 h-5', cat.color)} />
+                  <Icon className={cn('w-4 h-4', cat.color)} />
                 </span>
-                <span className={cn('text-xs whitespace-nowrap', selected ? 'text-gray-900 font-medium' : 'text-gray-500')}>
+                <span className={cn('text-[10px] truncate w-full text-center', selected ? 'text-gray-900 font-medium' : 'text-gray-500')}>
                   {cat.name}
                 </span>
               </button>
@@ -187,44 +252,27 @@ export default function Add() {
         </div>
       </div>
 
-      {/* 金额 + 日期 一行 */}
-      <div className="flex items-center gap-3 px-4 py-2">
-        <div className="flex items-baseline shrink-0">
-          <span className="text-xs text-gray-400 mr-1">¥</span>
-          <span className={cn('text-3xl font-bold', amount ? 'text-gray-900' : 'text-gray-300')}>
-            {amount || '0.00'}
+      {/* 金额单独一行 */}
+      <div className="px-4 py-3 text-center">
+        {pendingOp && (
+          <span className="text-sm text-gray-400 mr-1">
+            {result !== null ? formatNum(result) : ''} {pendingOp}
           </span>
-        </div>
+        )}
+        <span className="text-xs text-gray-400 mr-1">¥</span>
+        <span className={cn('text-3xl font-bold', displayValue !== '0.00' ? 'text-gray-900' : 'text-gray-300')}>
+          {displayValue}
+        </span>
+      </div>
+
+      {/* 日期 + 备注 */}
+      <div className="px-4 space-y-2 pb-2">
         <input
           type="datetime-local"
           value={date}
           onChange={(e) => setDate(e.target.value)}
-          className="flex-1 min-w-0 bg-white rounded-lg px-3 py-2 text-sm text-gray-700 outline-none"
+          className="w-full bg-white rounded-lg px-3 py-2 text-sm text-gray-700 outline-none"
         />
-      </div>
-
-      {/* 加油字段：里程 + 单价 一行 / 备注 */}
-      <div className="px-4 space-y-2 pb-2">
-        {category === '加油' && (
-          <div className="flex gap-2">
-            <input
-              type="number"
-              inputMode="decimal"
-              value={oilPrice}
-              onChange={(e) => setOilPrice(e.target.value)}
-              placeholder="单价(元/升)"
-              className="flex-1 min-w-0 bg-white rounded-lg px-3 py-2 text-sm text-gray-700 placeholder-gray-400 outline-none"
-            />
-            <input
-              type="number"
-              inputMode="decimal"
-              value={mileage}
-              onChange={(e) => setMileage(e.target.value)}
-              placeholder="里程(km)"
-              className="flex-1 min-w-0 bg-white rounded-lg px-3 py-2 text-sm text-gray-700 placeholder-gray-400 outline-none"
-            />
-          </div>
-        )}
         <input
           type="text"
           value={note}
@@ -234,36 +282,40 @@ export default function Add() {
         />
       </div>
 
-      {/* 数字键盘 */}
+      {/* 计算器键盘 4列 */}
       <div className="mt-auto bg-white">
-        <div className="grid grid-cols-3">
-          {padKeys.map((key) => (
-            <button
-              key={key}
-              onClick={() => handleDigit(key)}
-              className="h-14 text-xl font-medium text-gray-800 active:bg-gray-100 border-b border-r border-gray-50"
-            >
-              {key}
-            </button>
-          ))}
-          <button
-            onClick={handleDelete}
-            className="h-14 flex items-center justify-center active:bg-gray-100 border-b border-gray-50"
-          >
-            <Delete className="w-5 h-5 text-gray-600" />
-          </button>
+        <div className="grid grid-cols-4">
+          {keypad.map((key, idx) => {
+            const Icon = key.icon
+            if (key.isDone) {
+              return (
+                <button
+                  key={idx}
+                  onClick={key.action}
+                  disabled={key.disabled}
+                  className={cn(
+                    'h-14 flex items-center justify-center text-sm font-medium transition-colors',
+                    key.disabled ? 'bg-gray-200 text-gray-400' : 'bg-amber-600 text-white active:bg-amber-700'
+                  )}
+                >
+                  {key.label}
+                </button>
+              )
+            }
+            return (
+              <button
+                key={idx}
+                onClick={key.action}
+                className={cn(
+                  'h-14 flex items-center justify-center text-xl font-medium text-gray-800 active:bg-gray-100 border-b border-r border-gray-50',
+                  key.isClear && 'text-amber-600'
+                )}
+              >
+                {Icon ? <Icon className="w-5 h-5 text-gray-600" /> : key.label}
+              </button>
+            )
+          })}
         </div>
-        <button
-          onClick={handleSave}
-          disabled={!category || !amount || saving}
-          className={cn(
-            'w-full h-14 flex items-center justify-center gap-2 text-white font-medium transition-colors',
-            !category || !amount ? 'bg-gray-300' : 'bg-amber-600 active:bg-amber-700'
-          )}
-        >
-          <Check className="w-5 h-5" />
-          <span>{isEdit ? '保存修改' : '确认记一笔'}</span>
-        </button>
       </div>
     </div>
   )

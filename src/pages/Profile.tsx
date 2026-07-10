@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Wallet, TrendingUp, TrendingDown, FileText, Tag, Lock, LogOut, X } from 'lucide-react'
+import { Wallet, TrendingUp, TrendingDown, FileText, Lock, LogOut, X } from 'lucide-react'
 import { api } from '@/api'
 import { useAppStore } from '@/store'
 import { formatAmount, cn } from '@/lib/utils'
@@ -53,7 +53,6 @@ export default function Profile() {
   ]
 
   const menus = [
-    { label: '标签管理', icon: Tag, color: 'text-amber-600', bg: 'bg-amber-100', onClick: () => navigate('/tags') },
     { label: '重置密码', icon: Lock, color: 'text-blue-600', bg: 'bg-blue-100', onClick: () => setShowPwdModal(true) },
     { label: '退出登录', icon: LogOut, color: 'text-red-500', bg: 'bg-red-100', onClick: handleLogout },
   ]

@@ -70,51 +70,6 @@ router.get('/by-day', (req: AuthRequest, res: Response) => {
   res.json(result)
 })
 
-// 加油月度汇总
-router.get('/gas/monthly', (req: AuthRequest, res: Response) => {
-  const rows = db.prepare(
-    `SELECT id, amount, oil_price, mileage, date FROM transactions
-     WHERE user_id = ? AND category = '加油' AND type = 'expense'
-     ORDER BY date DESC`
-  ).all(req.userId) as { id: number; amount: number; oil_price: number | null; mileage: number | null; date: string }[]
-
-  // 按月聚合
-  const grouped: Record<string, typeof rows> = {}
-  for (const row of rows) {
-    const monthKey = row.date.substring(0, 7) // YYYY-MM
-    if (!grouped[monthKey]) grouped[monthKey] = []
-    grouped[monthKey].push(row)
-  }
-
-  const result = Object.entries(grouped).map(([month, items]) => {
-    const count = items.length
-    const totalAmount = items.reduce((s, i) => s + i.amount, 0)
-    const totalLiters = items.reduce((s, i) => {
-      if (i.oil_price && i.oil_price > 0) return s + i.amount / i.oil_price
-      return s
-    }, 0)
-    // 油耗计算：需要里程数据
-    const mileages = items.filter(i => i.mileage && i.mileage > 0).map(i => i.mileage as number)
-    let fuelConsumption: number | null = null
-    if (mileages.length >= 2) {
-      const distance = Math.max(...mileages) - Math.min(...mileages)
-      if (distance > 0) fuelConsumption = (totalLiters / distance) * 100
-    }
-    return { month, count, total_amount: totalAmount, total_liters: totalLiters, fuel_consumption: fuelConsumption }
-  })
-
-  res.json(result)
-})
-
-// 加油月度明细
-router.get('/gas/:month', (req: AuthRequest, res: Response) => {
-  const month = req.params.month
-  const rows = db.prepare(
-    `SELECT * FROM transactions WHERE user_id = ? AND category = '加油' AND type = 'expense' AND date LIKE ? ORDER BY date ASC`
-  ).all(req.userId, `${month}%`) as unknown as Transaction[]
-  res.json(rows)
-})
-
 // 获取支出最多的N条记录
 router.get('/top-expenses', (req: AuthRequest, res: Response) => {
   const period = (req.query.period as string) || 'month'
@@ -162,14 +117,14 @@ router.get('/:id', (req: AuthRequest, res: Response) => {
 
 // 新增交易
 router.post('/', (req: AuthRequest, res: Response) => {
-  const { type, category, amount, note, date, oil_price, mileage } = req.body as TransactionInput
+  const { type, category, amount, note, date } = req.body as TransactionInput
   if (!type || !category || !amount || !date) {
     res.status(400).json({ error: '参数不完整' })
     return
   }
   const result = db.prepare(
-    'INSERT INTO transactions (user_id, type, category, amount, note, date, oil_price, mileage) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-  ).run(req.userId, type, category, amount, note || '', date, oil_price || null, mileage || null)
+    'INSERT INTO transactions (user_id, type, category, amount, note, date) VALUES (?, ?, ?, ?, ?, ?)'
+  ).run(req.userId, type, category, amount, note || '', date)
 
   const row = db.prepare('SELECT * FROM transactions WHERE id = ?').get(result.lastInsertRowid) as unknown as Transaction
   res.json(row)
@@ -177,7 +132,7 @@ router.post('/', (req: AuthRequest, res: Response) => {
 
 // 编辑交易
 router.put('/:id', (req: AuthRequest, res: Response) => {
-  const { type, category, amount, note, date, oil_price, mileage } = req.body as TransactionInput
+  const { type, category, amount, note, date } = req.body as TransactionInput
   if (!type || !category || !amount || !date) {
     res.status(400).json({ error: '参数不完整' })
     return
@@ -188,8 +143,8 @@ router.put('/:id', (req: AuthRequest, res: Response) => {
     return
   }
   db.prepare(
-    'UPDATE transactions SET type = ?, category = ?, amount = ?, note = ?, date = ?, oil_price = ?, mileage = ? WHERE id = ? AND user_id = ?'
-  ).run(type, category, amount, note || '', date, oil_price || null, mileage || null, Number(req.params.id), req.userId)
+    'UPDATE transactions SET type = ?, category = ?, amount = ?, note = ?, date = ? WHERE id = ? AND user_id = ?'
+  ).run(type, category, amount, note || '', date, Number(req.params.id), req.userId)
 
   const row = db.prepare('SELECT * FROM transactions WHERE id = ?').get(Number(req.params.id)) as unknown as Transaction
   res.json(row)

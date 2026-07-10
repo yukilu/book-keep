@@ -1,5 +1,5 @@
 import type {
-  Transaction, TransactionInput, GasRecord, GasRecordInput,
+  Transaction, TransactionInput,
   MonthlySummary, DailyTransactions, CategoryStat, DailyTrend, OverviewStats,
   Category, CategoryInput, AuthResponse, LoginInput, RegisterInput, ResetPasswordInput,
 } from '@shared/types'
@@ -55,12 +55,6 @@ export const api = {
     request<Transaction>(`/transactions/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteTransaction: (id: number) =>
     request<{ success: boolean }>(`/transactions/${id}`, { method: 'DELETE' }),
-
-  // 加油（从交易中筛选）
-  getGasMonthly: () =>
-    request<{ month: string; count: number; total_amount: number; total_liters: number; fuel_consumption: number | null }[]>('/transactions/gas/monthly'),
-  getGasByMonth: (month: string) =>
-    request<Transaction[]>(`/transactions/gas/${month}`),
   getTopExpenses: (period: 'week' | 'month' | 'year', limit: number = 10) =>
     request<Transaction[]>(`/transactions/top-expenses?period=${period}&limit=${limit}`),
 
@@ -73,14 +67,6 @@ export const api = {
     request<{ total: number; trend: { label: string; expense: number }[] }>(`/charts/expense?period=${period}`),
   getCategoryByPeriod: (period: 'week' | 'month' | 'year') =>
     request<CategoryStat[]>(`/charts/category-by-period?period=${period}`),
-
-  // 加油
-  getGasRecords: () =>
-    request<GasRecord[]>('/gas'),
-  createGasRecord: (data: GasRecordInput) =>
-    request<GasRecord>('/gas', { method: 'POST', body: JSON.stringify(data) }),
-  deleteGasRecord: (id: number) =>
-    request<{ success: boolean }>(`/gas/${id}`, { method: 'DELETE' }),
 
   // 总览
   getOverview: () =>

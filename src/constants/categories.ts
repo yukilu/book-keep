@@ -20,11 +20,10 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Wallet, Gift, Briefcase, TrendingUp, Mail,
 }
 
-// 默认支出分类（含加油，放在交通后面）
+// 默认支出分类
 export const DEFAULT_EXPENSE_CATEGORIES: CategoryConfig[] = [
   { name: '餐饮', icon: UtensilsCrossed, color: 'text-orange-600', bgColor: 'bg-orange-100' },
   { name: '交通', icon: Bus, color: 'text-blue-600', bgColor: 'bg-blue-100' },
-  { name: '加油', icon: Fuel, color: 'text-amber-600', bgColor: 'bg-amber-100' },
   { name: '购物', icon: ShoppingBag, color: 'text-pink-600', bgColor: 'bg-pink-100' },
   { name: '娱乐', icon: Gamepad2, color: 'text-purple-600', bgColor: 'bg-purple-100' },
   { name: '居住', icon: Home, color: 'text-teal-600', bgColor: 'bg-teal-100' },

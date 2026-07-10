@@ -17,8 +17,6 @@ export interface Transaction {
   amount: number
   note: string
   date: string // YYYY-MM-DD HH:mm
-  oil_price?: number | null
-  mileage?: number | null
   created_at: string
 }
 
@@ -29,32 +27,6 @@ export interface TransactionInput {
   amount: number
   note?: string
   date: string // YYYY-MM-DD HH:mm
-  oil_price?: number | null
-  mileage?: number | null
-}
-
-// 加油记录
-export interface GasRecord {
-  id: number
-  user_id: number
-  date: string
-  amount: number
-  liters: number
-  price_per_liter: number
-  mileage: number
-  station: string
-  note: string
-  created_at: string
-}
-
-export interface GasRecordInput {
-  date: string
-  amount: number
-  liters: number
-  price_per_liter: number
-  mileage?: number
-  station?: string
-  note?: string
 }
 
 // 月度汇总

@@ -92,18 +92,6 @@ export default function TransactionDetail() {
             <span className="text-sm text-gray-400">时间</span>
             <span className="text-sm text-gray-800">{transaction.date}</span>
           </div>
-          {transaction.category === '加油' && transaction.oil_price != null && (
-            <div className="flex items-center justify-between px-4 py-3">
-              <span className="text-sm text-gray-400">油价</span>
-              <span className="text-sm text-gray-800">{transaction.oil_price.toFixed(2)} 元/升</span>
-            </div>
-          )}
-          {transaction.category === '加油' && transaction.mileage != null && (
-            <div className="flex items-center justify-between px-4 py-3">
-              <span className="text-sm text-gray-400">里程数</span>
-              <span className="text-sm text-gray-800">{transaction.mileage} km</span>
-            </div>
-          )}
           <div className="flex items-center justify-between px-4 py-3">
             <span className="text-sm text-gray-400">备注</span>
             <span className="text-sm text-gray-800 max-w-[60%] text-right break-all">

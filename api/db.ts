@@ -28,22 +28,6 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_transactions_user_date ON transactions(user_id, date);
   CREATE INDEX IF NOT EXISTS idx_transactions_user_type ON transactions(user_id, type);
 
-  CREATE TABLE IF NOT EXISTS gas_records (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    date TEXT NOT NULL,
-    amount REAL NOT NULL,
-    liters REAL NOT NULL,
-    price_per_liter REAL NOT NULL,
-    mileage REAL DEFAULT 0,
-    station TEXT DEFAULT '',
-    note TEXT DEFAULT '',
-    created_at TEXT DEFAULT (datetime('now', 'localtime')),
-    FOREIGN KEY (user_id) REFERENCES users(id)
-  );
-
-  CREATE INDEX IF NOT EXISTS idx_gas_user_date ON gas_records(user_id, date);
-
   CREATE TABLE IF NOT EXISTS categories (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
@@ -60,8 +44,10 @@ db.exec(`
 
 // 迁移：添加 user_id 列
 try { db.exec(`ALTER TABLE transactions ADD COLUMN user_id INTEGER DEFAULT 1;`) } catch (_e) { /* 已存在 */ }
-try { db.exec(`ALTER TABLE gas_records ADD COLUMN user_id INTEGER DEFAULT 1;`) } catch (_e) { /* 已存在 */ }
 
-// 迁移：添加 oil_price 和 mileage 列
-try { db.exec(`ALTER TABLE transactions ADD COLUMN oil_price REAL;`) } catch (_e) { /* 已存在 */ }
-try { db.exec(`ALTER TABLE transactions ADD COLUMN mileage REAL;`) } catch (_e) { /* 已存在 */ }
+// 迁移：移除 oil_price 和 mileage 列（如存在）
+try { db.exec(`ALTER TABLE transactions DROP COLUMN oil_price;`) } catch (_e) { /* 不存在 */ }
+try { db.exec(`ALTER TABLE transactions DROP COLUMN mileage;`) } catch (_e) { /* 不存在 */ }
+
+// 迁移：删除 gas_records 表（如存在）
+try { db.exec(`DROP TABLE IF EXISTS gas_records;`) } catch (_e) { /* 忽略 */ }
