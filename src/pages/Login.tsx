@@ -40,7 +40,7 @@ export default function Login() {
         <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center shadow-lg shadow-amber-600/20 mb-4">
           <Wallet className="w-10 h-10 text-white" />
         </div>
-        <h1 className="text-2xl font-bold text-gray-900">记账本</h1>
+        <h1 className="text-2xl font-bold text-gray-900">钱迹</h1>
         <p className="text-sm text-gray-400 mt-1">坚持记账，理财有道</p>
       </div>
 

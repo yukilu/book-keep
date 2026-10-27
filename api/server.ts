@@ -6,9 +6,9 @@ import app from './app.js';
 /**
  * start server with port
  * 开发模式: 3001 端口
- * 生产模式: 80 端口（可通过 PORT 环境变量覆盖）
+ * 生产模式: 3008 端口（可通过 PORT 环境变量覆盖）
  */
-const PORT = process.env.PORT || (process.env.NODE_ENV === 'production' ? 80 : 3001);
+const PORT = process.env.PORT || (process.env.NODE_ENV === 'production' ? 3008 : 3001);
 
 const server = app.listen(PORT, () => {
   console.log(`Server ready on port ${PORT}`);

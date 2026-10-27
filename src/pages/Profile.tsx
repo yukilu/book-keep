@@ -121,7 +121,7 @@ export default function Profile() {
           <div className="space-y-2 text-sm">
             <div className="flex items-center justify-between">
               <span className="text-gray-500">应用名称</span>
-              <span className="text-gray-700">记账本</span>
+              <span className="text-gray-700">钱迹</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-gray-500">版本</span>
